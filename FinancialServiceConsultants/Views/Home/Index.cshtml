@@ -1,0 +1,329 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@*Reference to JQuery*@
+@**@
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<br />
+<div class="container">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="row">
+
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h2>Customers</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <table id="customerTable" class="table table-bordered table-condensed table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Edit</th>
+                                            <th>Company Name</th>
+                                            <th>Contact Number</th>
+                                            <th>Contact Person</th>
+                                            <th>Contact Email</th>
+                                            <th>Delete</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br />
+
+                <div class="row">
+                    <div class="col-sm-6" align="center">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading">
+                                <h3>Customer Information</h3>
+                            </div>
+
+                            <input type="hidden" id="id" value="0" />
+
+                            <div class="panel-body">
+                                <div class="form-group">
+                                    <label for="companyName">Company Name</label>
+                                    <input type="text" id="companyName"
+                                           class="form-control" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="contactNumber">
+                                        Contact Number
+                                    </label>
+                                    <input type="date" id="contactNumber"
+                                           class="form-control" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="contactPerson">
+                                        Contact Person
+                                    </label>
+                                    <input type="date" id="contactPerson"
+                                           class="form-control" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="contactEmail">
+                                        Contact Email
+                                    </label>
+                                    <input type="date" id="contactEmail"
+                                           class="form-control" />
+                                </div>
+
+                            </div>
+                            <div class="panel-footer">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <button type="button" id="updateButton"
+                                                class="btn btn-primary"
+                                                onclick="updateClick(this);">
+                                            Add
+                                        </button>
+                                        <button type="button" id="clearButton"
+                                                class="btn btn-primary"
+                                                onclick="clearClick();">
+                                            Clear
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+
+    // Handle click event on Clear button
+    function clearClick() { 
+        formClear();
+
+        
+    }
+
+    // Handle click event on Update button
+    function updateClick(ctl) {
+
+        // Build product object from inputs
+        Customer = new Object();
+        Customer.id = $("#id").val();
+        Customer.companyName = $("#companyName").val();
+        Customer.contactNumber = $("#contactNumber").val();
+        Customer.contactPerson = $("#contactPerson").val();
+        Customer.contactEmail = $("#contactEmail").val();
+        if ($("#updateButton").text().trim() ==
+            "Add") {
+            customerAdd(Customer);
+        }
+        else {
+            customerUpdate(Customer);
+        }
+    }
+
+    // Add(Post) new customer
+    function customerAdd(customer) {
+        $.ajax({
+            url: "/api/Customers",
+            type: 'POST',
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(customer),
+            success: function (customer) {
+                customerAddSuccess(customer);
+            },
+            error: function (request, message, error) {
+                handleException(request, message, error);
+            }
+        });
+    }
+
+    function customerAddSuccess(customer) {
+        customerAddRow(customer);
+        formClear();
+    }
+
+    // Update(Put) new customer
+    function customerUpdate(customer) {
+        $.ajax({
+            url: "/api/Customers/" + customer.id,
+            type: 'PUT',
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(customer),
+            success: function (customer) {
+                customerUpdateSuccess(customer);
+            },
+            error: function (request, message, error) {
+                handleException(request, message, error);
+            }
+        });
+    }
+
+    function customerUpdateSuccess(customer) {
+        customerUpdateInTable(customer);
+    }
+
+    //Update Table
+    function customerUpdateInTable(customer) {
+
+        // Find customer in <table>
+        var row = $("#customerTable button[data-id='" +
+            customer.id + "']").parents("tr")[0];
+        // Add changed customer to table
+        $(row).after(customerBuildTableRow(customer));
+        // Remove original product
+        $(row).remove();
+        formClear(); // Clear form fields
+        // Change Update Button Text
+        $("#updateButton").text("Add");
+    }
+
+    // Clear from
+    function formClear() {
+        $("#companyName").val("");
+        $("#contactNumber").val("");
+        $("#contactPerson").val("");
+        $("#contactEmail").val("");
+    }
+
+    // Handle click event on Add button
+    function addClick() {
+        formClear();
+    }
+
+    // Call Web API to get a list of Customers
+    function customerList() {
+        $.ajax({
+            url: "/api/customers",
+            type: 'GET',
+            dataType: 'json',
+            success: function (customers) {
+                customerListSuccess(customers);
+            },
+            error: function (request, message, error) {
+                handleException(request, message, error);
+            }
+        });
+    }
+
+    function customerListSuccess(customers) {
+        // Iterate over the collection of data
+        $.each(customers, function (index, customer) {
+            // Add a row to the Customer table
+            customerAddRow(customer);
+        });
+    }
+
+    function customerAddRow(customer) {
+        // Check if <tbody> tag exists, add one if not
+        if ($("#customerTable tbody").length == 0) {
+            $("#customerTable").append("<tbody></tbody>");
+        }
+        // Append row to <table>
+        $("#customerTable tbody").append(
+            customerBuildTableRow(customer));
+    }
+
+    function customerBuildTableRow(customer) {
+        var ret =
+            "<tr>" +
+            "<td>" +
+            "<button type='button' " +
+            "onclick='customerGet(this);' " +
+            "class='btn btn-default' " +
+            "data-id='" + customer.id + "'>" +
+            "<span class='glyphicon glyphicon-edit' />"
+            + "</button>" +
+            "</td >" +
+            "<td>" + customer.companyName + "</td>" +
+            "<td>" + customer.contactNumber + "</td>" +
+            "<td>" + customer.contactPerson + "</td>" +
+            "<td>" + customer.contactEmail + "</td>" +
+            "<td>" +
+            "<button type='button' " +
+            "onclick='customerDelete(this);' " +
+            "class='btn btn-default' " +
+            "data-id='" + customer.id + "'>" +
+            "<span class='glyphicon glyphicon-remove' />" +
+            "</button>" +
+            "</td>" +
+            "</tr>";
+        return ret;
+    }
+    
+    function handleException(request, message,
+        error) {
+        var msg = "";
+        msg += "Code: " + request.status + "\n";
+        msg += "Text: " + request.statusText + "\n";
+        if (request.responseJSON != null) {
+            msg += "Message" +
+                request.responseJSON.Message + "\n";
+        }
+        alert(msg);
+    }
+    
+    function customerToFields(customer) {
+        $("#id").val(customer.id);
+        $("#companyName").val(customer.companyName);
+        $("#contactNumber").val(customer.contactNumber);
+        $("#contactPerson").val(customer.contactPerson);
+        $("#contactEmail").val(customer.contactEmail);
+    }
+
+    // Delete customer
+    function customerDelete(ctl) {
+        var id = $(ctl).data("id");
+
+        $.ajax({
+            url: "/api/Customers/" + id,
+            type: 'DELETE',
+            success: function (customer) {
+                $(ctl).parents("tr").remove();
+            },
+            error: function (request, message, error) {
+                handleException(request, message, error);
+            }
+        });
+    }
+
+    function customerGet(ctl) {
+        // Get product id from data- attribute
+        var id = $(ctl).data("id");
+
+        // Store product id in hidden field
+        $("#customerid").val(id);
+
+        // Call Web API to get a list of Products
+        $.ajax({
+            url: "/api/Customers/" + id,
+            type: 'GET',
+            dataType: 'json',
+            success: function (customer) {
+                customerToFields(customer);
+
+                // Change Update Button Text
+                $("#updateButton").text("Update");
+            },
+            error: function (request, message, error) {
+                handleException(request, message, error);
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        formClear();
+        customerList();
+    });
+
+</script>
+
+
